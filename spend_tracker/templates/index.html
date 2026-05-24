@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spend Tracker</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Spend Tracker</h1>
+          <p>Bank transactions reconciled with Splitwise shares.</p>
+        </div>
+        <div class="actions">
+          <button id="connect-plaid" type="button">Connect bank</button>
+          <button id="sync-plaid" type="button">Sync banks</button>
+          <button id="sync-splitwise" type="button">Sync Splitwise</button>
+        </div>
+      </header>
+
+      <section class="metrics" aria-label="Summary">
+        <article>
+          <span>Real spend</span>
+          <strong id="real-spend">$0.00</strong>
+        </article>
+        <article>
+          <span>Bank spend</span>
+          <strong id="raw-bank-spend">$0.00</strong>
+        </article>
+        <article>
+          <span>Bank txns</span>
+          <strong id="bank-count">0</strong>
+        </article>
+        <article>
+          <span>Splitwise</span>
+          <strong id="splitwise-count">0</strong>
+        </article>
+      </section>
+
+      <section class="ledger">
+        <form class="filters" id="filters">
+          <label>
+            <span>Range</span>
+            <select id="preset" name="preset">
+              <option value="all">All</option>
+              <option value="this_month">This month</option>
+              <option value="last_month">Last month</option>
+              <option value="last_30_days">Last 30 days</option>
+              <option value="last_90_days">Last 90 days</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label>
+            <span>Start</span>
+            <input id="start-date" name="start" type="date" />
+          </label>
+          <label>
+            <span>End</span>
+            <input id="end-date" name="end" type="date" />
+          </label>
+        </form>
+        <div class="ledger-header">
+          <h2>Recent adjusted spend</h2>
+          <div class="ledger-meta">
+            <span id="row-count"></span>
+            <span id="status"></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Source</th>
+                <th>Original</th>
+                <th>Actual</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody id="transactions"></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="prev-page" type="button">Previous</button>
+          <span id="page-count"></span>
+          <button id="next-page" type="button">Next</button>
+        </div>
+      </section>
+
+      <section class="ledger review-panel">
+        <div class="ledger-header">
+          <h2>Transfer review</h2>
+          <div class="ledger-meta">
+            <span id="transfer-count"></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Transfer</th>
+                <th>Amount</th>
+                <th>Actual spend</th>
+                <th>Description</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="transfer-review"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ledger review-panel">
+        <div class="ledger-header">
+          <h2>Incoming reimbursements</h2>
+          <div class="ledger-meta">
+            <span id="reimbursement-count"></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>From</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody id="reimbursements"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
