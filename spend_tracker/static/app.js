@@ -15,6 +15,7 @@ const state = {
   limit: 100,
   totalPages: 1,
 };
+const chartColors = ["#1f7a63", "#bb5a3a", "#315f9f", "#9a6b13", "#6b5aa6", "#2f7f9f", "#7a3f62", "#59723a"];
 
 function setStatus(message) {
   statusEl.textContent = message || "";
@@ -52,10 +53,11 @@ async function refreshDashboard() {
     `Page ${data.summary.page} of ${data.summary.total_pages}`;
   document.querySelector("#prev-page").disabled = data.summary.page <= 1;
   document.querySelector("#next-page").disabled = data.summary.page >= data.summary.total_pages;
+  renderAnalytics(data.analytics);
 
   transactionsEl.innerHTML = "";
   if (data.transactions.length === 0) {
-    transactionsEl.innerHTML = '<tr><td class="empty" colspan="6">No reconciled spend yet.</td></tr>';
+    transactionsEl.innerHTML = '<tr><td class="empty" colspan="7">No reconciled spend yet.</td></tr>';
     return;
   }
 
@@ -65,11 +67,98 @@ async function refreshDashboard() {
       <td>${row.date}</td>
       <td>${escapeHtml(row.description)}</td>
       <td><span class="source">${escapeHtml(row.source)}</span></td>
+      <td>${escapeHtml(row.category)}</td>
       <td class="amount">${money.format(row.original_amount)}</td>
       <td class="amount">${money.format(row.adjusted_amount)}</td>
       <td>${escapeHtml(row.note || "")}</td>
     `;
     transactionsEl.appendChild(tr);
+  }
+}
+
+function renderAnalytics(analytics) {
+  renderCategoryBreakdown(analytics.categories || []);
+  renderSourceBreakdown(analytics.sources || []);
+  renderMonthlyTrend(analytics.monthly || []);
+}
+
+function renderCategoryBreakdown(categories) {
+  const list = document.querySelector("#category-list");
+  const donut = document.querySelector("#category-donut");
+  const total = categories.reduce((sum, item) => sum + Math.abs(item.amount), 0);
+  document.querySelector("#category-total").textContent = total ? money.format(total) : "";
+  list.innerHTML = "";
+  if (!total) {
+    donut.style.background = "#edf0ec";
+    list.innerHTML = '<div class="empty-small">No category data</div>';
+    return;
+  }
+
+  let cursor = 0;
+  const segments = categories.slice(0, 8).map((item, index) => {
+    const start = cursor;
+    const size = (Math.abs(item.amount) / total) * 100;
+    cursor += size;
+    return `${chartColors[index % chartColors.length]} ${start}% ${cursor}%`;
+  });
+  donut.style.background = `conic-gradient(${segments.join(", ")})`;
+
+  for (const [index, item] of categories.slice(0, 8).entries()) {
+    const percent = Math.round((Math.abs(item.amount) / total) * 100);
+    const row = document.createElement("div");
+    row.className = "category-row";
+    row.innerHTML = `
+      <span class="swatch" style="background:${chartColors[index % chartColors.length]}"></span>
+      <span class="category-name">${escapeHtml(item.label)}</span>
+      <span class="category-amount">${money.format(item.amount)}</span>
+      <span class="category-bar"><i style="width:${percent}%"></i></span>
+    `;
+    list.appendChild(row);
+  }
+}
+
+function renderSourceBreakdown(sources) {
+  const list = document.querySelector("#source-list");
+  const total = sources.reduce((sum, item) => sum + Math.abs(item.amount), 0);
+  list.innerHTML = "";
+  if (!total) {
+    list.innerHTML = '<div class="empty-small">No source data</div>';
+    return;
+  }
+  for (const [index, item] of sources.entries()) {
+    const percent = Math.round((Math.abs(item.amount) / total) * 100);
+    const row = document.createElement("div");
+    row.className = "source-row";
+    row.innerHTML = `
+      <div>
+        <span class="source-dot" style="background:${chartColors[index % chartColors.length]}"></span>
+        <strong>${escapeHtml(item.label)}</strong>
+      </div>
+      <span>${money.format(item.amount)}</span>
+      <i><b style="width:${percent}%"></b></i>
+    `;
+    list.appendChild(row);
+  }
+}
+
+function renderMonthlyTrend(months) {
+  const chart = document.querySelector("#monthly-chart");
+  chart.innerHTML = "";
+  if (months.length === 0) {
+    chart.innerHTML = '<div class="empty-small">No trend data</div>';
+    return;
+  }
+  const max = Math.max(...months.map((item) => Math.abs(item.amount)), 1);
+  for (const item of months.slice(-8)) {
+    const height = Math.max(8, Math.round((Math.abs(item.amount) / max) * 130));
+    const bar = document.createElement("div");
+    bar.className = "month-bar";
+    bar.innerHTML = `
+      <span class="bar-value">${money.format(item.amount)}</span>
+      <i style="height:${height}px"></i>
+      <span>${escapeHtml(item.month.slice(5))}</span>
+    `;
+    chart.appendChild(bar);
   }
 }
 

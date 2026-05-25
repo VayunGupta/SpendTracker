@@ -40,6 +40,31 @@
         </article>
       </section>
 
+      <section class="analytics" aria-label="Spend analytics">
+        <article class="viz-panel category-panel">
+          <div class="panel-title">
+            <h2>Categories</h2>
+            <span id="category-total"></span>
+          </div>
+          <div class="category-viz">
+            <div class="donut" id="category-donut"></div>
+            <div class="category-list" id="category-list"></div>
+          </div>
+        </article>
+        <article class="viz-panel">
+          <div class="panel-title">
+            <h2>Sources</h2>
+          </div>
+          <div id="source-list" class="source-list"></div>
+        </article>
+        <article class="viz-panel trend-panel">
+          <div class="panel-title">
+            <h2>Monthly trend</h2>
+          </div>
+          <div id="monthly-chart" class="monthly-chart"></div>
+        </article>
+      </section>
+
       <section class="ledger">
         <form class="filters" id="filters">
           <label>
@@ -76,6 +101,7 @@
                 <th>Date</th>
                 <th>Description</th>
                 <th>Source</th>
+                <th>Category</th>
                 <th>Original</th>
                 <th>Actual</th>
                 <th>Note</th>

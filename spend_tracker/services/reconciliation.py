@@ -31,6 +31,8 @@ def is_balance_movement(bank: BankTransaction) -> bool:
         "mobile pmtcapital one",
         "online transfer to",
         "online transfer from",
+        "zel to",
+        "zelle to",
     ]
     return any(pattern in text for pattern in patterns)
 

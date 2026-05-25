@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
 import json
@@ -262,6 +263,61 @@ def splitwise_payment_summary(db: Session, start: Optional[date], end: Optional[
     return {"paid_out": float(paid_out), "received": float(received), "net": float(received - paid_out)}
 
 
+def row_category(row: ReconciledSpend, db: Session) -> str:
+    if row.source == "splitwise":
+        return "Splitwise net"
+    if row.source == "manual":
+        return "Manual"
+    if row.bank_transaction_id is None:
+        return "Other"
+
+    transaction = db.get(BankTransaction, row.bank_transaction_id)
+    if transaction is None:
+        return "Other"
+    if transaction.category:
+        return transaction.category.split(",")[0].title()
+    try:
+        raw = json.loads(transaction.raw_json)
+    except ValueError:
+        return "Other"
+    personal_category = raw.get("personal_finance_category") or {}
+    primary = str(personal_category.get("primary") or "")
+    detailed = str(personal_category.get("detailed") or "")
+    category = primary or detailed
+    if not category:
+        return "Other"
+    category = category.replace("_", " ").title()
+    return category.replace("And", "&")
+
+
+def analytics_for_rows(rows: list, db: Session) -> dict:
+    categories = defaultdict(Decimal)
+    sources = defaultdict(Decimal)
+    monthly = defaultdict(Decimal)
+    for row in rows:
+        amount = Decimal(row.adjusted_amount)
+        if amount == 0:
+            continue
+        categories[row_category(row, db)] += amount
+        sources[row.source] += amount
+        monthly[row.date.strftime("%Y-%m")] += amount
+
+    def sorted_items(values):
+        return [
+            {"label": label, "amount": float(amount)}
+            for label, amount in sorted(values.items(), key=lambda item: abs(item[1]), reverse=True)
+        ]
+
+    return {
+        "categories": sorted_items(categories),
+        "sources": sorted_items(sources),
+        "monthly": [
+            {"month": month, "amount": float(amount)}
+            for month, amount in sorted(monthly.items())
+        ],
+    }
+
+
 @app.get("/api/dashboard")
 def dashboard(
     preset: str = Query(default="all"),
@@ -317,8 +373,10 @@ def dashboard(
         start,
         end,
     )
+    filtered_rows = db.scalars(row_statement).all()
     rows = db.scalars(row_statement.offset(offset).limit(limit)).all()
     total_pages = max(1, (reconciled_count + limit - 1) // limit)
+    analytics = analytics_for_rows(filtered_rows, db)
     return {
         "summary": {
             "real_spend": float(total),
@@ -342,6 +400,7 @@ def dashboard(
             {
                 "id": row.id,
                 "source": row.source,
+                "category": row_category(row, db),
                 "date": row.date.isoformat(),
                 "description": row.description,
                 "original_amount": float(row.original_amount),
@@ -350,4 +409,5 @@ def dashboard(
             }
             for row in rows
         ],
+        "analytics": analytics,
     }
